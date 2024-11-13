@@ -1,4 +1,4 @@
-From 952c497109509507f42169be6bf3a280179e102d Mon Sep 17 00:00:00 2001
+From e69aafb0cc9c78338081bc5f4c9df2db2606b32b Mon Sep 17 00:00:00 2001
 From: Benjamin Manuel <ben@benmanuel.com>
 Date: Sun, 28 Jul 2024 19:43:15 -0500
 Subject: [PATCH] Make building the daemon optional
@@ -37,10 +37,10 @@ index ece5fc6..9e8f8dd 100644
      foreach man_name, man_section: manfiles
          custom_target('man_' + man_name + '.' + man_section.to_string(),
 diff --git a/meson.build b/meson.build
-index 738437b..f179a70 100644
+index aaffbc9..ed953c4 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -89,7 +89,7 @@ glib_dep = dependency('glib-2.0', version: '>=' + glib_min_version)
+@@ -88,7 +88,7 @@ glib_dep = dependency('glib-2.0', version: '>=' + glib_min_version)
  gio_dep = dependency('gio-2.0', version: '>=' + glib_min_version)
  gio_unix_dep = dependency('gio-unix-2.0', version: '>=' + glib_min_version)
  gmodule_dep = dependency('gmodule-2.0', version: '>=' + glib_min_version)
@@ -48,8 +48,8 @@ index 738437b..f179a70 100644
 +libfprint_dep = dependency('libfprint-2', version: '>=' + libfprint_min_version, required: get_option('daemon'))
  polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.91')
  dbus_dep = dependency('dbus-1', required: false)
- libsystemd_dep = dependency(get_option('libsystemd'), required: get_option('pam'))
-@@ -144,21 +144,23 @@ endif
+ 
+@@ -173,21 +173,23 @@ endif
  
  xmllint = find_program('xmllint', required: false)
  python3 = find_program('python3') # No meson without it!
@@ -88,14 +88,14 @@ index 738437b..f179a70 100644
  
  cdata = configuration_data()
  cdata.set_quoted('GETTEXT_PACKAGE', meson.project_name())
-@@ -200,6 +202,7 @@ if get_option('pam')
-     output += '  PAM module directory: ' + pam_modules_dir
+@@ -230,6 +232,7 @@ if get_option('pam')
  endif
  output += '\nOptional features:\n'
+ output += '  PAM module: ' + (get_option('pam') and pam_dep.found()).to_string()
 +output += '  DBus daemon: ' + get_option('daemon').to_string()
- output += '  PAM module: ' + (pam_dep.found() and get_option('pam')).to_string()
  output += '  Manuals: ' + get_option('man').to_string()
  output += '  GTK Doc: ' + get_option('gtk_doc').to_string()
+ output += '  XML Linter ' + xmllint.found().to_string()
 diff --git a/meson_options.txt b/meson_options.txt
 index 286889e..d07544f 100644
 --- a/meson_options.txt
@@ -109,10 +109,10 @@ index 286889e..d07544f 100644
      description: 'Build the fprintd PAM module',
      type: 'boolean',
 diff --git a/src/meson.build b/src/meson.build
-index 410226a..68f2a4b 100644
+index 20ab1a8..a4b464d 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -69,17 +69,19 @@ libfprintd_private = static_library('fprintd-private',
+@@ -52,17 +52,19 @@ libfprintd_private = static_library('fprintd-private',
      gnu_symbol_visibility: 'hidden',
  )
  
@@ -171,5 +171,5 @@ index 495acbc..415555a 100644
              ],
              'suite': [t == 'fprintd' ? 'daemon' : ''],
 -- 
-2.45.2
+2.46.1
 
