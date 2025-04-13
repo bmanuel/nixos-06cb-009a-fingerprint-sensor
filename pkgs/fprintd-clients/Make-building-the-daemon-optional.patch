@@ -1,18 +1,18 @@
-From e69aafb0cc9c78338081bc5f4c9df2db2606b32b Mon Sep 17 00:00:00 2001
+From 6e652c53534421175eda457d866407e9f556fa82 Mon Sep 17 00:00:00 2001
 From: Benjamin Manuel <ben@benmanuel.com>
 Date: Sun, 28 Jul 2024 19:43:15 -0500
 Subject: [PATCH] Make building the daemon optional
 
 ---
  data/meson.build  | 12 ++++++------
- meson.build       | 35 +++++++++++++++++++----------------
+ meson.build       | 39 ++++++++++++++++++++++-----------------
  meson_options.txt |  4 ++++
  src/meson.build   | 30 ++++++++++++++++--------------
- tests/meson.build |  6 ++----
- 5 files changed, 47 insertions(+), 40 deletions(-)
+ tests/meson.build |  7 ++-----
+ 5 files changed, 50 insertions(+), 42 deletions(-)
 
 diff --git a/data/meson.build b/data/meson.build
-index ece5fc6..9e8f8dd 100644
+index 156e597..17165c1 100644
 --- a/data/meson.build
 +++ b/data/meson.build
 @@ -42,14 +42,14 @@ if xmllint.found()
@@ -37,7 +37,7 @@ index ece5fc6..9e8f8dd 100644
      foreach man_name, man_section: manfiles
          custom_target('man_' + man_name + '.' + man_section.to_string(),
 diff --git a/meson.build b/meson.build
-index aaffbc9..ed953c4 100644
+index eebea25..f1e2759 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -88,7 +88,7 @@ glib_dep = dependency('glib-2.0', version: '>=' + glib_min_version)
@@ -49,8 +49,11 @@ index aaffbc9..ed953c4 100644
  polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.91')
  dbus_dep = dependency('dbus-1', required: false)
  
-@@ -173,21 +173,23 @@ endif
- 
+@@ -170,24 +170,28 @@ pam_wrapper_dep = dependency('pam_wrapper', required: false)
+ if get_option('pam') and not pam_wrapper_dep.found()
+     warning('Dependency "pam_wrapper" required by test suite not found')
+ endif
+-
  xmllint = find_program('xmllint', required: false)
  python3 = find_program('python3') # No meson without it!
 -python3_test_modules = {
@@ -64,11 +67,14 @@ index aaffbc9..ed953c4 100644
 -python3_available_modules = []
 -
 -foreach module, required : python3_test_modules
--    if required and run_command(python3, '-c', 'import @0@'.format(module)).returncode() != 0
+-    if required and run_command(python3, '-c', 'import @0@'.format(module), check: false).returncode() != 0
 -        warning('Python3 module \'' + module + '\' required by test suite not found')
 -    endif
 -endforeach
++
 +if get_option('daemon')
++    xmllint = find_program('xmllint', required: false)
++    python3 = find_program('python3') # No meson without it!
 +    python3_test_modules = {
 +        'cairo': true,
 +        'dbus': true,
@@ -88,7 +94,7 @@ index aaffbc9..ed953c4 100644
  
  cdata = configuration_data()
  cdata.set_quoted('GETTEXT_PACKAGE', meson.project_name())
-@@ -230,6 +232,7 @@ if get_option('pam')
+@@ -230,6 +234,7 @@ if get_option('pam')
  endif
  output += '\nOptional features:\n'
  output += '  PAM module: ' + (get_option('pam') and pam_dep.found()).to_string()
@@ -147,22 +153,23 @@ index 20ab1a8..a4b464d 100644
 +    )
 +endif
 diff --git a/tests/meson.build b/tests/meson.build
-index 495acbc..415555a 100644
+index 0e5ea3c..d83e36c 100644
 --- a/tests/meson.build
 +++ b/tests/meson.build
-@@ -18,8 +18,7 @@ python_tests = [
+@@ -17,9 +17,7 @@ python_tests = [
+ ]
  
  address_sanitizer = get_option('b_sanitize') == 'address'
- 
+-
 -tests = [
 -    'fprintd',
 +tests = (get_option('daemon') ? [ 'fprintd' ] : []) + [
      'test_fprintd_utils',
  ]
  
-@@ -34,8 +33,7 @@ foreach t: tests
-                 'FPRINT_BUILD_DIR=' + meson.build_root() / 'src',
-                 'TOPSRCDIR=' + meson.source_root(),
+@@ -34,8 +32,7 @@ foreach t: tests
+                 'FPRINT_BUILD_DIR=' + meson.project_build_root() / 'src',
+                 'TOPSRCDIR=' + meson.project_source_root(),
              ],
 -            'depends': [
 -                fprintd,
@@ -171,5 +178,5 @@ index 495acbc..415555a 100644
              ],
              'suite': [t == 'fprintd' ? 'daemon' : ''],
 -- 
-2.46.1
+2.48.1
 
